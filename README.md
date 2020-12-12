@@ -58,6 +58,13 @@ same sequence of commands shown above for MacOS.
 
 On Windows, open the generated file ``InstantMeshes.sln`` after step 3 and proceed building as usual from within Visual Studio.
 
+## Compiling CLI
+Following the instructions on the above **Compiling** section, by default it will build with GUI. If you only need the command line interface please add a `BUILD_GUI=OFF` cmake option. 
+
+    cmake -DBUILD_GUI=OFF .
+    make -j 4
+
+
 ## Usage
 
 To get started, launch the binary and select a dataset using the "Open mesh" button on the top left (the application must be located in the same directory as the 'datasets' folder, otherwise the panel will be empty).

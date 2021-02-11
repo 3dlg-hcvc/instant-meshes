@@ -542,6 +542,7 @@ void MultiResolutionHierarchy::save(Serializer &serializer) {
         serializer.pushPrefix(std::to_string(i));
         serializer.set("V", mV[i]);
         serializer.set("N", mN[i]);
+        serializer.set("C", mC[i]);
         serializer.set("A", mA[i]);
         serializer.set("O", mO[i]);
         serializer.set("Q", mQ[i]);
@@ -591,11 +592,13 @@ void MultiResolutionHierarchy::load(const Serializer &serializer) {
     for (uint32_t i=0; i<levels; ++i) {
         serializer.pushPrefix(std::to_string(i));
         MatrixXf V, N, O, Q, CQ, CO;
+        MatrixXu8 C;
         VectorXf A, CQw, COw;
         std::vector<std::vector<uint32_t>> phases;
 
         serializer.get("V", V);
         serializer.get("N", N);
+        serializer.get("C", C);
         serializer.get("A", A);
         serializer.get("O", O);
         serializer.get("Q", Q);
@@ -608,6 +611,7 @@ void MultiResolutionHierarchy::load(const Serializer &serializer) {
 
         mV.push_back(std::move(V));
         mN.push_back(std::move(N));
+        mC.push_back(std::move(C));
         mA.push_back(std::move(A));
         mO.push_back(std::move(O));
         mQ.push_back(std::move(Q));

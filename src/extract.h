@@ -29,7 +29,7 @@ class BVH;
 extern void
 extract_graph(const MultiResolutionHierarchy &mRes, bool extrinsic, int rosy, int posy,
               std::vector<std::vector<TaggedLink>> &adj_new,
-              MatrixXf &O_new, MatrixXf &N_new,
+              MatrixXf &O_new, MatrixXf &N_new, MatrixXf &C_new,
               const std::set<uint32_t> &crease_in,
               std::set<uint32_t> &crease_out,
               bool deterministic, bool remove_spurious_vertices = true,
@@ -37,7 +37,7 @@ extract_graph(const MultiResolutionHierarchy &mRes, bool extrinsic, int rosy, in
               bool snap_vertices = true);
 
 extern void extract_faces(std::vector<std::vector<TaggedLink> > &adj,
-                          MatrixXf &O, MatrixXf &N, MatrixXf &Nf, MatrixXu &F,
+                          MatrixXf &O, MatrixXf &N, MatrixXf &Nf, MatrixXf &C, MatrixXu &F,
                           int posy, Float scale, std::set<uint32_t> &crease,
                           bool fill_holes = true, bool pure_quad = true,
                           BVH *bvh = nullptr, int smooth_iterations = 2);

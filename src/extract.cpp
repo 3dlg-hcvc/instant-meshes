@@ -29,7 +29,7 @@ typedef std::pair<uint32_t, uint32_t> Edge;
 void
 extract_graph(const MultiResolutionHierarchy &mRes, bool extrinsic, int rosy, int posy,
               std::vector<std::vector<TaggedLink> > &adj_new,
-              MatrixXf &O_new, MatrixXf &N_new,
+              MatrixXf &O_new, MatrixXf &N_new, MatrixXf &C_new,
               const std::set<uint32_t> &crease_in,
               std::set<uint32_t> &crease_out,
               bool deterministic, bool remove_spurious_vertices,
@@ -43,6 +43,7 @@ extract_graph(const MultiResolutionHierarchy &mRes, bool extrinsic, int rosy, in
     auto compat_position = posy == 4 ? compat_position_extrinsic_index_4 : compat_position_extrinsic_index_3;
 
     const MatrixXf &Q = mRes.Q(), &O = mRes.O(), &N = mRes.N(), &V = mRes.V();
+    const MatrixXu8 &C = mRes.C();
     const VectorXf &COw = mRes.COw();
     const AdjacencyMatrix &adj = mRes.adj();
 
@@ -255,8 +256,10 @@ extract_graph(const MultiResolutionHierarchy &mRes, bool extrinsic, int rosy, in
 
         O_new.resize(3, nVertices);
         N_new.resize(3, nVertices);
+        C_new.resize(3, nVertices);
         O_new.setZero();
         N_new.setZero();
+        C_new.setZero();
 
         crease_out.clear();
         for (auto i : crease_in) {
@@ -275,6 +278,7 @@ extract_graph(const MultiResolutionHierarchy &mRes, bool extrinsic, int rosy, in
 
             auto map = [&](const tbb::blocked_range<uint32_t> &range) {
                 for (uint32_t i = range.begin(); i < range.end(); ++i) {
+                    int check = O.size();
                     auto it = vertex_map.find(dset.find(i));
                     if (it == vertex_map.end())
                         continue;
@@ -289,6 +293,7 @@ extract_graph(const MultiResolutionHierarchy &mRes, bool extrinsic, int rosy, in
                     for (uint32_t k=0; k<3; ++k) {
                         atomicAdd(&O_new.coeffRef(k, j), O(k, i)*weight);
                         atomicAdd(&N_new.coeffRef(k, j), N(k, i)*weight);
+                        atomicAdd(&C_new.coeffRef(k, j), C(k, i)*weight);
                     }
                     atomicAdd(&cluster_weight[j], weight);
                 }
@@ -306,6 +311,7 @@ extract_graph(const MultiResolutionHierarchy &mRes, bool extrinsic, int rosy, in
                 }
                 O_new.col(i) /= cluster_weight[i];
                 N_new.col(i).normalize();
+                C_new.col(i) /= cluster_weight[i];
             }
 
             cout << "done. (took " << timeString(timer.reset()) << ")" << endl;
@@ -516,7 +522,7 @@ extract_graph(const MultiResolutionHierarchy &mRes, bool extrinsic, int rosy, in
 }
 
 void extract_faces(std::vector<std::vector<TaggedLink> > &adj, MatrixXf &O,
-                   MatrixXf &N, MatrixXf &Nf, MatrixXu &F, int posy,
+                   MatrixXf &N, MatrixXf &Nf, MatrixXf &C, MatrixXu &F, int posy,
                    Float scale, std::set<uint32_t> &crease, bool fill_holes,
                    bool pure_quad, BVH *bvh, int smooth_iterations) {
 
@@ -614,17 +620,21 @@ void extract_faces(std::vector<std::vector<TaggedLink> > &adj, MatrixXf &O,
                     throw std::runtime_error("Internal error in fill_hole");
                 Vector3f centroid = Vector3f::Zero();
                 Vector3f centroid_normal = Vector3f::Zero();
+                Vector3f centroid_color = Vector3f::Zero();
                 for (uint32_t k=0; k<verts.size(); ++k) {
                     centroid += O.col(verts[k].first);
                     centroid_normal += N.col(verts[k].first);
+                    centroid_color += C.col(verts[k].first);
                 }
                 uint32_t idx_centroid = nV++;
                 if (nV > O.cols()) {
                     O.conservativeResize(O.rows(), O.cols() * 2);
                     N.conservativeResize(O.rows(), O.cols());
+                    C.conservativeResize(O.rows(), O.cols());
                 }
                 O.col(idx_centroid) = centroid / verts.size();
                 N.col(idx_centroid) = centroid_normal.normalized();
+                C.col(idx_centroid) = centroid_color / verts.size();
 
                 for (uint32_t i=0; i<verts.size(); ++i) {
                     uint32_t idx = nF++;
@@ -744,6 +754,7 @@ void extract_faces(std::vector<std::vector<TaggedLink> > &adj, MatrixXf &O,
     if (posy == 4 && pure_quad) {
         F.conservativeResize(posy, nF);
         N.conservativeResize(3, nV);
+        C.conservativeResize(3, nV);
         O.conservativeResize(3, nV);
         VectorXu V2E, E2E, E2E_v;
         VectorXb nonManifold, boundary;
@@ -760,6 +771,7 @@ void extract_faces(std::vector<std::vector<TaggedLink> > &adj, MatrixXf &O,
                 continue;
             Vector3f fc = O.col(face[0]) + O.col(face[1]) + O.col(face[2]) + O.col(face[3]);
             Vector3f fc_n = N.col(face[0]) + N.col(face[1]) + N.col(face[2]) + N.col(face[3]);
+            Vector3f fc_c = C.col(face[0]) + C.col(face[1]) + C.col(face[2]) + C.col(face[3]);
             uint32_t idx_fc = nV++;
             bool all_crease = true;
             for (int k=0; k<4; ++k) {
@@ -774,9 +786,11 @@ void extract_faces(std::vector<std::vector<TaggedLink> > &adj, MatrixXf &O,
             if (nV > O.cols()) {
                 O.conservativeResize(O.rows(), O.cols() * 2);
                 N.conservativeResize(O.rows(), O.cols());
+                C.conservativeResize(O.rows(), O.cols());
             }
             O.col(idx_fc) = fc * 1.f/4.f;
             N.col(idx_fc) = fc_n.normalized();
+            C.col(idx_fc) = fc_c * 1.f/4.f;
 
             Vector4u idx_ecs = Vector4u::Constant(INVALID);
             for (uint32_t j=0; j<4; ++j) {
@@ -795,9 +809,11 @@ void extract_faces(std::vector<std::vector<TaggedLink> > &adj, MatrixXf &O,
                     if (nV > O.cols()) {
                         O.conservativeResize(O.rows(), O.cols() * 2);
                         N.conservativeResize(O.rows(), O.cols());
+                        C.conservativeResize(O.rows(), O.cols());
                     }
                     O.col(idx_ec) = (O.col(i0) + O.col(i1)) * 0.5f;
                     N.col(idx_ec) = (N.col(i0) + N.col(i1)).normalized();
+                    C.col(idx_ec) = (C.col(i0) + C.col(i1)) * 0.5f;
                     if (crease.find(i0) != crease.end() &&
                         crease.find(i1) != crease.end())
                         crease.insert(idx_ec);
@@ -845,9 +861,11 @@ void extract_faces(std::vector<std::vector<TaggedLink> > &adj, MatrixXf &O,
                     if (nV > O.cols()) {
                         O.conservativeResize(O.rows(), O.cols() * 2);
                         N.conservativeResize(O.rows(), O.cols());
+                        C.conservativeResize(O.rows(), O.cols());
                     }
                     O.col(idx_ec) = (O.col(i0) + O.col(i1)) * 0.5f;
                     N.col(idx_ec) = (N.col(i0) + N.col(i1)).normalized();
+                    C.col(idx_ec) = (C.col(i0) + C.col(i1)) * 0.5f;
                     if (crease.find(i0) != crease.end() &&
                         crease.find(i1) != crease.end())
                         crease.insert(idx_ec);
@@ -865,6 +883,7 @@ void extract_faces(std::vector<std::vector<TaggedLink> > &adj, MatrixXf &O,
 
     F.conservativeResize(posy, nF);
     N.conservativeResize(3, nV);
+    C.conservativeResize(3, nV);
     O.conservativeResize(3, nV);
 
     if (smooth_iterations > 0) {
@@ -1006,13 +1025,15 @@ void extract_faces(std::vector<std::vector<TaggedLink> > &adj, MatrixXf &O,
 
     cout << "Step 12: Reordering mesh for efficient access .. ";
     cout.flush();
-    std::vector<MatrixXf> V_vec(2), F_vec(1);
+    std::vector<MatrixXf> V_vec(3), F_vec(1);
     V_vec[0].swap(O);
     V_vec[1].swap(N);
+    V_vec[2].swap(C);
     F_vec[0].swap(Nf);
     reorder_mesh(F, V_vec, F_vec);
     V_vec[0].swap(O);
     V_vec[1].swap(N);
+    V_vec[2].swap(C);
     F_vec[0].swap(Nf);
     cout << "done. (took " << timeString(timer.value()) << ")" << endl;
 

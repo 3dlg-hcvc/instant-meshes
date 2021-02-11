@@ -23,14 +23,14 @@ extern "C" {
     #include "rply.h"
 }
 
-void load_mesh_or_pointcloud(const std::string &filename, MatrixXu &F, MatrixXf &V, MatrixXf &N,
+void load_mesh_or_pointcloud(const std::string &filename, MatrixXu &F, MatrixXf &V, MatrixXf &N, MatrixXu8 &C,
               const ProgressCallback &progress) {
     std::string extension;
     if (filename.size() > 4)
         extension = str_tolower(filename.substr(filename.size()-4));
 
     if (extension == ".ply")
-        load_ply(filename, F, V, N, false, progress);
+        load_ply(filename, F, V, N, C, false, progress);
     else if (extension == ".obj")
         load_obj(filename, F, V, progress);
     else if (extension == ".aln")
@@ -56,7 +56,7 @@ void write_mesh(const std::string &filename, const MatrixXu &F,
 }
 
 void load_ply(const std::string &filename, MatrixXu &F, MatrixXf &V,
-              MatrixXf &N, bool pointcloud, const ProgressCallback &progress) {
+              MatrixXf &N, MatrixXu8 &C, bool pointcloud, const ProgressCallback &progress) {
     auto message_cb = [](p_ply ply, const char *msg) { cerr << "rply: " << msg << endl; };
 
     Timer<> timer;
@@ -94,6 +94,7 @@ void load_ply(const std::string &filename, MatrixXu &F, MatrixXf &V,
 
     F.resize(3, faceCount);
     V.resize(3, vertexCount);
+    C.resize(3, vertexCount);
 
     struct VertexCallbackData {
         MatrixXf &V;
@@ -116,6 +117,13 @@ void load_ply(const std::string &filename, MatrixXu &F, MatrixXf &V,
             : N(_N), progress(progress) { }
     };
 
+    struct VertexColorCallbackData {
+        MatrixXu8 &C;
+        const ProgressCallback &progress;
+        VertexColorCallbackData(MatrixXu8 &C, const ProgressCallback &progress)
+                : C(C), progress(progress) { }
+    };
+
     auto rply_vertex_cb = [](p_ply_argument argument) -> int {
         VertexCallbackData *data; long index, coord;
         ply_get_argument_user_data(argument, (void **) &data, &coord);
@@ -133,6 +141,16 @@ void load_ply(const std::string &filename, MatrixXu &F, MatrixXf &V,
         data->N(coord, index) = (Float) ply_get_argument_value(argument);
         if (data->progress && coord == 0 && index % 500000 == 0)
             data->progress("Loading vertex normal data", index / (Float)data->N.cols());
+        return 1;
+    };
+
+    auto rply_vertex_color_cb = [](p_ply_argument argument) -> int {
+        VertexColorCallbackData *data; long index, coord;
+        ply_get_argument_user_data(argument, (void **) &data, &coord);
+        ply_get_argument_element(argument, nullptr, &index);
+        data->C(coord, index) = (uint8_t) ply_get_argument_value(argument);
+        if (data->progress && coord == 0 && index % 500000 == 0)
+            data->progress("Loading vertex color data", index / (Float)data->C.cols());
         return 1;
     };
 
@@ -159,12 +177,19 @@ void load_ply(const std::string &filename, MatrixXu &F, MatrixXf &V,
     VertexCallbackData vcbData(V, progress);
     FaceCallbackData fcbData(F, progress);
     VertexNormalCallbackData vncbData(N, progress);
+    VertexColorCallbackData vccbData(C, progress);
 
     if (!ply_set_read_cb(ply, "vertex", "x", rply_vertex_cb, &vcbData, 0) ||
         !ply_set_read_cb(ply, "vertex", "y", rply_vertex_cb, &vcbData, 1) ||
         !ply_set_read_cb(ply, "vertex", "z", rply_vertex_cb, &vcbData, 2)) {
         ply_close(ply);
         throw std::runtime_error("PLY file \"" + filename + "\" does not contain vertex position data!");
+    }
+
+    if (!ply_set_read_cb(ply, "vertex", "red", rply_vertex_color_cb, &vccbData, 0) ||
+        !ply_set_read_cb(ply, "vertex", "green", rply_vertex_color_cb, &vccbData, 1) ||
+        !ply_set_read_cb(ply, "vertex", "blue", rply_vertex_color_cb, &vccbData, 2)) {
+        ply_close(ply);
     }
 
     if (pointcloud && faceCount == 0) {
@@ -514,7 +539,8 @@ void load_pointcloud(const std::string &filename, MatrixXf &V, MatrixXf &N,
         fetch_string(filename_sub);
         MatrixXu F_sub;
         MatrixXf V_sub, N_sub;
-        load_ply(std::string(path_dir) + "/" + filename_sub, F_sub, V_sub, N_sub, true);
+        MatrixXu8 C_sub;
+        load_ply(std::string(path_dir) + "/" + filename_sub, F_sub, V_sub, N_sub, C_sub, true);
         Eigen::Matrix<Float, 4, 4> M;
         for (uint32_t k=0; k<16; ++k)
             fetch_float(M.data()[k]);

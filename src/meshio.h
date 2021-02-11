@@ -17,14 +17,14 @@
 
 extern void
 load_mesh_or_pointcloud(const std::string &filename, MatrixXu &F,
-                        MatrixXf &V, MatrixXf &N,
+                        MatrixXf &V, MatrixXf &N, MatrixXu8 &C,
                         const ProgressCallback &progress = ProgressCallback());
 
 extern void load_obj(const std::string &filename, MatrixXu &F, MatrixXf &V,
                      const ProgressCallback &progress = ProgressCallback());
 
 extern void load_ply(const std::string &filename, MatrixXu &F, MatrixXf &V,
-                     MatrixXf &N, bool pointcloud = false,
+                     MatrixXf &N, MatrixXu8 &C, bool pointcloud = false,
                      const ProgressCallback &progress = ProgressCallback());
 
 extern void

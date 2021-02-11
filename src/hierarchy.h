@@ -48,6 +48,7 @@ public:
     inline AdjacencyMatrix &adj(int level = 0) { return mAdj[level]; }
     inline const MatrixXf &V(int level = 0) const { return mV[level]; }
     inline const MatrixXf &N(int level = 0) const { return mN[level]; }
+    inline const MatrixXu8 &C(int level = 0) const { return mC[level]; }
     inline const VectorXf &A(int level = 0) const { return mA[level]; }
     inline const MatrixXu &toUpper(int level) const { return mToUpper[level]; }
     inline const VectorXu &toLower(int level) const { return mToLower[level]; }
@@ -70,6 +71,7 @@ public:
     inline void setE2E(VectorXu &&E2E) { mE2E = std::move(E2E); }
     inline void setV(MatrixXf &&V) { mV.clear(); mV.push_back(std::move(V)); }
     inline void setN(MatrixXf &&N) { mN.clear(); mN.push_back(std::move(N)); }
+    inline void setC(MatrixXu8 &&C) { mC.clear(); mC.push_back(std::move(C)); }
     inline void setA(MatrixXf &&A) { mA.clear(); mA.push_back(std::move(A)); }
     inline void setAdj(AdjacencyMatrix &&adj) { mAdj.clear(); mAdj.push_back(std::move(adj)); }
 
@@ -113,6 +115,7 @@ public:
     std::vector<AdjacencyMatrix> mAdj;
     std::vector<MatrixXf> mV;
     std::vector<MatrixXf> mN;
+    std::vector<MatrixXu8> mC;
     std::vector<VectorXf> mA;
     std::vector<VectorXu> mToLower;
     std::vector<MatrixXu> mToUpper;

@@ -48,13 +48,14 @@ void batch_process(const std::string &input, const std::string &output,
 
     MatrixXu F;
     MatrixXf V, N;
+    MatrixXu8 C;
     VectorXf A;
     std::set<uint32_t> crease_in, crease_out;
     BVH *bvh = nullptr;
     AdjacencyMatrix adj = nullptr;
 
     /* Load the input mesh */
-    load_mesh_or_pointcloud(input, F, V, N);
+    load_mesh_or_pointcloud(input, F, V, N, C);
 
     bool pointcloud = F.size() == 0;
 
@@ -132,6 +133,7 @@ void batch_process(const std::string &input, const std::string &output,
     mRes.setV(std::move(V));
     mRes.setA(std::move(A));
     mRes.setN(std::move(N));
+    mRes.setC(std::move(C));
     mRes.setScale(scale);
     mRes.build(deterministic);
     mRes.resetSolution();
@@ -198,17 +200,17 @@ void batch_process(const std::string &input, const std::string &output,
 
     optimizer.shutdown();
 
-    MatrixXf O_extr, N_extr, Nf_extr;
+    MatrixXf O_extr, N_extr, Nf_extr, C_extr;
     std::vector<std::vector<TaggedLink>> adj_extr;
-    extract_graph(mRes, extrinsic, rosy, posy, adj_extr, O_extr, N_extr,
+    extract_graph(mRes, extrinsic, rosy, posy, adj_extr, O_extr, N_extr, C_extr,
                   crease_in, crease_out, deterministic);
 
     MatrixXu F_extr;
-    extract_faces(adj_extr, O_extr, N_extr, Nf_extr, F_extr, posy,
+    extract_faces(adj_extr, O_extr, N_extr, Nf_extr, C_extr, F_extr, posy,
             mRes.scale(), crease_out, true, pure_quad, bvh, smooth_iter);
     cout << "Extraction is done. (total time: " << timeString(timer.reset()) << ")" << endl;
 
-    write_mesh(output, F_extr, O_extr, MatrixXf(), Nf_extr);
+    write_mesh(output, F_extr, O_extr, MatrixXf(), Nf_extr, MatrixXf(), C_extr);
     if (bvh)
         delete bvh;
 }

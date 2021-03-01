@@ -17,7 +17,8 @@
 
 extern void
 load_mesh_or_pointcloud(const std::string &filename, MatrixXu &F,
-                        MatrixXf &V, MatrixXf &N, MatrixXu8 &C,
+                        MatrixXf &V, MatrixXf &N, MatrixXu8 &C, 
+                        bool read_vertex_normals = false,
                         const ProgressCallback &progress = ProgressCallback());
 
 extern void load_obj(const std::string &filename, MatrixXu &F, MatrixXf &V,

@@ -3059,6 +3059,7 @@ void Viewer::loadInput(std::string filename, Float creaseAngle, Float scale,
     /* Load triangle mesh data */
     MatrixXu F, F_gpu;
     MatrixXf V, N, V_gpu, N_gpu;
+    MatrixXu8 C;
     VectorXf A;
     AdjacencyMatrix adj = nullptr;
 
@@ -3067,7 +3068,7 @@ void Viewer::loadInput(std::string filename, Float creaseAngle, Float scale,
     glfwMakeContextCurrent(nullptr);
 
     try {
-        load_mesh_or_pointcloud(filename, F, V, N, mProgress);
+        load_mesh_or_pointcloud(filename, F, V, N, C, false, mProgress);
     } catch (const std::exception &e) {
         new MessageDialog(this, MessageDialog::Type::Warning, "Error", e.what());
         glfwMakeContextCurrent(mGLFWWindow);

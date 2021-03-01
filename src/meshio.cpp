@@ -23,14 +23,14 @@ extern "C" {
     #include "rply.h"
 }
 
-void load_mesh_or_pointcloud(const std::string &filename, MatrixXu &F, MatrixXf &V, MatrixXf &N, MatrixXu8 &C,
+void load_mesh_or_pointcloud(const std::string &filename, MatrixXu &F, MatrixXf &V, MatrixXf &N, MatrixXu8 &C, bool read_vertex_normals,
               const ProgressCallback &progress) {
     std::string extension;
     if (filename.size() > 4)
         extension = str_tolower(filename.substr(filename.size()-4));
 
     if (extension == ".ply")
-        load_ply(filename, F, V, N, C, false, progress);
+        load_ply(filename, F, V, N, C, read_vertex_normals, progress);
     else if (extension == ".obj")
         load_obj(filename, F, V, progress);
     else if (extension == ".aln")
@@ -192,7 +192,7 @@ void load_ply(const std::string &filename, MatrixXu &F, MatrixXf &V,
         ply_close(ply);
     }
 
-    if (pointcloud && faceCount == 0) {
+    if (pointcloud || faceCount == 0) {
         N.resize(3, vertexCount);
         if (!ply_set_read_cb(ply, "vertex", "nx", rply_vertex_normal_cb, &vncbData, 0) ||
             !ply_set_read_cb(ply, "vertex", "ny", rply_vertex_normal_cb, &vncbData, 1) ||

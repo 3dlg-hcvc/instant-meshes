@@ -41,7 +41,7 @@ void load_mesh_or_pointcloud(const std::string &filename, MatrixXu &F, MatrixXf 
 
 void write_mesh(const std::string &filename, const MatrixXu &F,
                 const MatrixXf &V, const MatrixXf &N, const MatrixXf &Nf,
-                const MatrixXf &UV, const MatrixXf &C,
+                const MatrixXf &UV, const MatrixXu8 &C,
                 const ProgressCallback &progress) {
     std::string extension;
     if (filename.size() > 4)
@@ -50,7 +50,7 @@ void write_mesh(const std::string &filename, const MatrixXu &F,
     if (extension == ".ply")
         write_ply(filename, F, V, N, Nf, UV, C, progress);
     else if (extension == ".obj")
-        write_obj(filename, F, V, N, Nf, UV, C, progress);
+        write_obj(filename, F, V, N, Nf, UV, progress);
     else
         throw std::runtime_error("write_mesh: Unknown file extension \"" + extension + "\" (.ply/.obj are supported)");
 }
@@ -95,6 +95,7 @@ void load_ply(const std::string &filename, MatrixXu &F, MatrixXf &V,
     F.resize(3, faceCount);
     V.resize(3, vertexCount);
     C.resize(3, vertexCount);
+    N.resize(3, vertexCount);
 
     struct VertexCallbackData {
         MatrixXf &V;
@@ -192,15 +193,12 @@ void load_ply(const std::string &filename, MatrixXu &F, MatrixXf &V,
         ply_close(ply);
     }
 
-    if (pointcloud || faceCount == 0) {
-        N.resize(3, vertexCount);
-        if (!ply_set_read_cb(ply, "vertex", "nx", rply_vertex_normal_cb, &vncbData, 0) ||
-            !ply_set_read_cb(ply, "vertex", "ny", rply_vertex_normal_cb, &vncbData, 1) ||
-            !ply_set_read_cb(ply, "vertex", "nz", rply_vertex_normal_cb, &vncbData, 2)) {
-            ply_close(ply);
-            throw std::runtime_error("PLY file \"" + filename + "\" does not contain vertex normal or face data!");
-        }
-    } else {
+    if (!ply_set_read_cb(ply, "vertex", "nx", rply_vertex_normal_cb, &vncbData, 0) ||
+        !ply_set_read_cb(ply, "vertex", "ny", rply_vertex_normal_cb, &vncbData, 1) ||
+        !ply_set_read_cb(ply, "vertex", "nz", rply_vertex_normal_cb, &vncbData, 2)) {
+    }
+
+    if (!pointcloud && faceCount > 0) {
         if (!ply_set_read_cb(ply, "face", "vertex_indices", rply_index_cb, &fcbData, 0)) {
             ply_close(ply);
             throw std::runtime_error("PLY file \"" + filename + "\" does not contain vertex indices!");
@@ -221,7 +219,7 @@ void load_ply(const std::string &filename, MatrixXu &F, MatrixXf &V,
 
 void write_ply(const std::string &filename, const MatrixXu &F,
                const MatrixXf &V, const MatrixXf &N, const MatrixXf &Nf, const MatrixXf &UV,
-               const MatrixXf &C, const ProgressCallback &progress) {
+               const MatrixXu8 &C, const ProgressCallback &progress) {
     auto message_cb = [](p_ply ply, const char *msg) { cerr << "rply: " << msg << endl; };
 
     Timer<> timer;
@@ -258,9 +256,9 @@ void write_ply(const std::string &filename, const MatrixXu &F,
     }
 
     if (C.size() > 0) {
-        ply_add_scalar_property(ply, "red", PLY_FLOAT);
-        ply_add_scalar_property(ply, "green", PLY_FLOAT);
-        ply_add_scalar_property(ply, "blue", PLY_FLOAT);
+        ply_add_scalar_property(ply, "red", PLY_UINT8);
+        ply_add_scalar_property(ply, "green", PLY_UINT8);
+        ply_add_scalar_property(ply, "blue", PLY_UINT8);
         if (C.cols() != V.cols() || (C.rows() != 3 && C.rows() != 4))
             throw std::runtime_error("Color matrix has incorrect size");
     }
@@ -569,7 +567,7 @@ void load_pointcloud(const std::string &filename, MatrixXf &V, MatrixXf &N,
 
 void write_obj(const std::string &filename, const MatrixXu &F,
                 const MatrixXf &V, const MatrixXf &N, const MatrixXf &Nf,
-                const MatrixXf &UV, const MatrixXf &C,
+                const MatrixXf &UV,
                 const ProgressCallback &progress) {
     Timer<> timer;
     cout << "Writing \"" << filename << "\" (V=" << V.cols()

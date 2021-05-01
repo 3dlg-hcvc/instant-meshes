@@ -37,7 +37,7 @@ extern void write_mesh(const std::string &filename, const MatrixXu &F,
                       const MatrixXf &N = MatrixXf(),
                       const MatrixXf &Nf = MatrixXf(),
                       const MatrixXf &UV = MatrixXf(),
-                      const MatrixXf &C = MatrixXf(),
+                      const MatrixXu8 &C = MatrixXu8(),
                       const ProgressCallback &progress = ProgressCallback());
 
 extern void write_obj(const std::string &filename, const MatrixXu &F,
@@ -45,7 +45,6 @@ extern void write_obj(const std::string &filename, const MatrixXu &F,
                       const MatrixXf &N = MatrixXf(),
                       const MatrixXf &Nf = MatrixXf(),
                       const MatrixXf &UV = MatrixXf(),
-                      const MatrixXf &C = MatrixXf(),
                       const ProgressCallback &progress = ProgressCallback());
 
 extern void write_ply(const std::string &filename, const MatrixXu &F,
@@ -53,5 +52,5 @@ extern void write_ply(const std::string &filename, const MatrixXu &F,
                       const MatrixXf &N = MatrixXf(),
                       const MatrixXf &Nf = MatrixXf(),
                       const MatrixXf &UV = MatrixXf(),
-                      const MatrixXf &C = MatrixXf(),
+                      const MatrixXu8 &C = MatrixXu8(),
                       const ProgressCallback &progress = ProgressCallback());

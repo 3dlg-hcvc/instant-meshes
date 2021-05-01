@@ -210,7 +210,7 @@ void batch_process(const std::string &input, const std::string &output,
             mRes.scale(), crease_out, true, pure_quad, bvh, smooth_iter);
     cout << "Extraction is done. (total time: " << timeString(timer.reset()) << ")" << endl;
 
-    write_mesh(output, F_extr, O_extr, N_extr, MatrixXf(), MatrixXf(), C_extr);
+    write_mesh(output, F_extr, O_extr, N_extr, MatrixXf(), MatrixXf(), C_extr.cast<uint8_t>());
     if (bvh)
         delete bvh;
 }

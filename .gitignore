@@ -23,3 +23,5 @@ datasets
 *.sln
 .idea
 cmake-build-debug/
+
+.vscode/

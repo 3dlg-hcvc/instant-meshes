@@ -610,9 +610,12 @@ void write_obj(const std::string &filename, const MatrixXu &F,
             uint32_t idx = F(j, f);
             idx += 1;
             os << idx;
-            if (Nf.size() > 0)
+            if (Nf.size() > 0) {
                 idx = f + 1;
-            os << "//" << idx << " ";
+                os << "//" << idx << " ";
+            }
+            else
+                os << " ";
         }
         os << endl;
     }
@@ -624,9 +627,12 @@ void write_obj(const std::string &filename, const MatrixXu &F,
         while (true) {
             uint32_t idx = v + 1;
             os << idx;
-            if (Nf.size() > 0)
+            if (Nf.size() > 0) {
                 idx = face.first + 1;
-            os << "//" << idx << " ";
+                os << "//" << idx << " ";
+            }
+            else
+                os << " ";
 
             v = face.second[v];
             if (v == first || ++i == face.second.size())

@@ -20,11 +20,12 @@
 #endif
 
 extern "C" {
-    #include "rply.h"
+#include "rply.h"
 }
 
 void load_mesh_or_pointcloud(const std::string &filename, MatrixXu &F, MatrixXf &V, MatrixXf &N, MatrixXu8 &C, bool read_vertex_normals,
-              const ProgressCallback &progress) {
+                             const ProgressCallback &progress)
+{
     std::string extension;
     if (filename.size() > 4)
         extension = str_tolower(filename.substr(filename.size()-4));
@@ -42,7 +43,8 @@ void load_mesh_or_pointcloud(const std::string &filename, MatrixXu &F, MatrixXf 
 void write_mesh(const std::string &filename, const MatrixXu &F,
                 const MatrixXf &V, const MatrixXf &N, const MatrixXf &Nf,
                 const MatrixXf &UV, const MatrixXu8 &C,
-                const ProgressCallback &progress) {
+                const ProgressCallback &progress)
+{
     std::string extension;
     if (filename.size() > 4)
         extension = str_tolower(filename.substr(filename.size()-4));
@@ -56,8 +58,11 @@ void write_mesh(const std::string &filename, const MatrixXu &F,
 }
 
 void load_ply(const std::string &filename, MatrixXu &F, MatrixXf &V,
-              MatrixXf &N, MatrixXu8 &C, bool pointcloud, const ProgressCallback &progress) {
-    auto message_cb = [](p_ply ply, const char *msg) { cerr << "rply: " << msg << endl; };
+              MatrixXf &N, MatrixXu8 &C, bool pointcloud, const ProgressCallback &progress)
+{
+    auto message_cb = [](p_ply ply, const char *msg) {
+        cerr << "rply: " << msg << endl;
+    };
 
     Timer<> timer;
     cout << "Loading \"" << filename << "\" .. ";
@@ -93,9 +98,13 @@ void load_ply(const std::string &filename, MatrixXu &F, MatrixXf &V,
         throw std::runtime_error("PLY file \"" + filename + "\" is invalid! No faces found!");
 
     F.resize(3, faceCount);
+    F.setZero();
     V.resize(3, vertexCount);
+    V.setZero();
     C.resize(3, vertexCount);
+    C.setZero();
     N.resize(3, vertexCount);
+    N.setZero();
 
     struct VertexCallbackData {
         MatrixXf &V;
@@ -122,11 +131,12 @@ void load_ply(const std::string &filename, MatrixXu &F, MatrixXf &V,
         MatrixXu8 &C;
         const ProgressCallback &progress;
         VertexColorCallbackData(MatrixXu8 &C, const ProgressCallback &progress)
-                : C(C), progress(progress) { }
+            : C(C), progress(progress) { }
     };
 
     auto rply_vertex_cb = [](p_ply_argument argument) -> int {
-        VertexCallbackData *data; long index, coord;
+        VertexCallbackData *data;
+        long index, coord;
         ply_get_argument_user_data(argument, (void **) &data, &coord);
         ply_get_argument_element(argument, nullptr, &index);
         data->V(coord, index) = (Float) ply_get_argument_value(argument);
@@ -136,7 +146,8 @@ void load_ply(const std::string &filename, MatrixXu &F, MatrixXf &V,
     };
 
     auto rply_vertex_normal_cb = [](p_ply_argument argument) -> int {
-        VertexNormalCallbackData *data; long index, coord;
+        VertexNormalCallbackData *data;
+        long index, coord;
         ply_get_argument_user_data(argument, (void **) &data, &coord);
         ply_get_argument_element(argument, nullptr, &index);
         data->N(coord, index) = (Float) ply_get_argument_value(argument);
@@ -146,7 +157,8 @@ void load_ply(const std::string &filename, MatrixXu &F, MatrixXf &V,
     };
 
     auto rply_vertex_color_cb = [](p_ply_argument argument) -> int {
-        VertexColorCallbackData *data; long index, coord;
+        VertexColorCallbackData *data;
+        long index, coord;
         ply_get_argument_user_data(argument, (void **) &data, &coord);
         ply_get_argument_element(argument, nullptr, &index);
         data->C(coord, index) = (uint8_t) ply_get_argument_value(argument);
@@ -219,8 +231,11 @@ void load_ply(const std::string &filename, MatrixXu &F, MatrixXf &V,
 
 void write_ply(const std::string &filename, const MatrixXu &F,
                const MatrixXf &V, const MatrixXf &N, const MatrixXf &Nf, const MatrixXf &UV,
-               const MatrixXu8 &C, const ProgressCallback &progress) {
-    auto message_cb = [](p_ply ply, const char *msg) { cerr << "rply: " << msg << endl; };
+               const MatrixXu8 &C, const ProgressCallback &progress)
+{
+    auto message_cb = [](p_ply ply, const char *msg) {
+        cerr << "rply: " << msg << endl;
+    };
 
     Timer<> timer;
     cout << "Writing \"" << filename << "\" (V=" << V.cols()
@@ -350,7 +365,8 @@ void write_ply(const std::string &filename, const MatrixXu &F,
 }
 
 void load_obj(const std::string &filename, MatrixXu &F, MatrixXf &V,
-              const ProgressCallback &progress) {
+              const ProgressCallback &progress)
+{
     /// Vertex indices used by the OBJ format
     struct obj_vertex {
         uint32_t p = (uint32_t) -1;
@@ -367,13 +383,13 @@ void load_obj(const std::string &filename, MatrixXu &F, MatrixXf &V,
 
             p = str_to_uint32_t(tokens[0]);
 
-            #if 0
-                if (tokens.size() >= 2 && !tokens[1].empty())
-                    uv = str_to_uint32_t(tokens[1]);
+#if 0
+            if (tokens.size() >= 2 && !tokens[1].empty())
+                uv = str_to_uint32_t(tokens[1]);
 
-                if (tokens.size() >= 3 && !tokens[2].empty())
-                    n = str_to_uint32_t(tokens[2]);
-            #endif
+            if (tokens.size() >= 3 && !tokens[2].empty())
+                n = str_to_uint32_t(tokens[2]);
+#endif
         }
 
         inline bool operator==(const obj_vertex &v) const {
@@ -418,19 +434,22 @@ void load_obj(const std::string &filename, MatrixXu &F, MatrixXf &V,
             Vector3f p;
             line >> p.x() >> p.y() >> p.z();
             positions.push_back(p);
-        } else if (prefix == "vt") {
+        }
+        else if (prefix == "vt") {
             /*
             Vector2f tc;
             line >> tc.x() >> tc.y();
             texcoords.push_back(tc);
             */
-        } else if (prefix == "vn") {
+        }
+        else if (prefix == "vn") {
             /*
             Vector3f n;
             line >> n.x() >> n.y() >> n.z();
             normals.push_back(n);
             */
-        } else if (prefix == "f") {
+        }
+        else if (prefix == "f") {
             std::string v1, v2, v3, v4;
             line >> v1 >> v2 >> v3 >> v4;
             obj_vertex tri[6];
@@ -455,7 +474,8 @@ void load_obj(const std::string &filename, MatrixXu &F, MatrixXf &V,
                     vertexMap[v] = (uint32_t) vertices.size();
                     indices.push_back((uint32_t) vertices.size());
                     vertices.push_back(v);
-                } else {
+                }
+                else {
                     indices.push_back(it->second);
                 }
             }
@@ -474,7 +494,8 @@ void load_obj(const std::string &filename, MatrixXu &F, MatrixXf &V,
 }
 
 void load_pointcloud(const std::string &filename, MatrixXf &V, MatrixXf &N,
-                     const ProgressCallback &progress) {
+                     const ProgressCallback &progress)
+{
     std::ifstream is(filename);
     if (is.fail())
         throw std::runtime_error("Unable to open ALN file \"" + filename + "\"!");
@@ -488,7 +509,8 @@ void load_pointcloud(const std::string &filename, MatrixXf &V, MatrixXf &N,
             std::getline(is, line_str);
             if (is.eof())
                 throw std::runtime_error("Parser error while processing ALN file!");
-        } while (line_str.empty() || line_str[0] == '#');
+        }
+        while (line_str.empty() || line_str[0] == '#');
         line.clear();
         line.str(std::move(line_str));
     };
@@ -566,9 +588,10 @@ void load_pointcloud(const std::string &filename, MatrixXf &V, MatrixXf &N,
 }
 
 void write_obj(const std::string &filename, const MatrixXu &F,
-                const MatrixXf &V, const MatrixXf &N, const MatrixXf &Nf,
-                const MatrixXf &UV,
-                const ProgressCallback &progress) {
+               const MatrixXf &V, const MatrixXf &N, const MatrixXf &Nf,
+               const MatrixXf &UV,
+               const ProgressCallback &progress)
+{
     Timer<> timer;
     cout << "Writing \"" << filename << "\" (V=" << V.cols()
          << ", F=" << F.cols() << ") .. ";
